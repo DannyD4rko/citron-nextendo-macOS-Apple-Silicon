@@ -207,9 +207,9 @@ void ClearParkedUdpSockets() {
 constexpr auto TCP_CLOSE_GRACE = std::chrono::milliseconds{500};
 
 void DeferredCloseTcpSocket(std::shared_ptr<Network::SocketBase> socket) {
-    std::thread([socket = std::move(socket)]() mutable {
+    std::thread([deferred_socket = std::move(socket)]() mutable {
         std::this_thread::sleep_for(TCP_CLOSE_GRACE);
-        socket->Close();
+        deferred_socket->Close();
     }).detach();
 }
 
