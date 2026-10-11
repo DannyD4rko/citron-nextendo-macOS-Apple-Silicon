@@ -139,6 +139,13 @@ static std::optional<std::string> GetNextendoRedirectIp(const std::string& host,
         return server_ip;
     }
 
+    // Dragon Ball FighterZ signs in to Bandai Namco's own API before any NEX traffic.
+    constexpr u64 DragonBallFighterZ = 0x0100A250097F0000ULL;
+    if (program_id == DragonBallFighterZ && host == "dbf.channel.or.jp") {
+        LOG_INFO(Service, "[Nextendo] Redirecting DBFZ API host '{}' -> '{}'", host, server_ip);
+        return server_ip;
+    }
+
     if (host.starts_with("nncs2-") && host.ends_with(".n.n.srv.nintendo.net")) {
         LOG_INFO(Service, "[Nextendo] Redirecting NAT check host '{}' -> '{}'", host, nat_ip);
         return nat_ip;
