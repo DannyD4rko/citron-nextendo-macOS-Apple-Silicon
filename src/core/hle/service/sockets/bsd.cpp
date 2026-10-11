@@ -80,11 +80,11 @@ static void StopDrain(ParkedUdpDrain& drain) {
 
 static void StartDrain(ParkedUdpDrain& drain, std::shared_ptr<Network::SocketBase> socket) {
     socket->SetRcvTimeo(PARKED_DRAIN_POLL_TIMEOUT_MS);
-    drain.thread = std::thread([&drain, socket = std::move(socket)] {
-        while (!drain.stop.load(std::memory_order_relaxed)) {
-            std::vector<u8> buffer(2048);
-            Network::SockAddrIn addr{};
-            const auto [ret, err] = socket->RecvFrom(0, buffer, &addr);
+    drain.thread = std::thread([&drain, drain_socket = std::move(socket)] {
+    while (!drain.stop.load(std::memory_order_relaxed)) {
+        std::vector<u8> buffer(2048);
+        Network::SockAddrIn addr{};
+        const auto [ret, err] = drain_socket->RecvFrom(0, buffer, &addr);
             if (ret <= 0) {
                 // Timeout (nothing arrived this poll) or the socket genuinely died — either
                 // way, loop back and check `stop` again rather than spinning on an error.
