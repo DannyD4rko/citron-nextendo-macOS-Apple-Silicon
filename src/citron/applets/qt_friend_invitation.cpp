@@ -73,12 +73,15 @@ void QtFriendInvitation::ShowInvitation(
 
     QMetaObject::invokeMethod(
         const_cast<QtFriendInvitation*>(this),
-        [this, request, title_id,
-         deferred_completion = std::move(deferred_completion)] {
-        if (dialog || !parent || request.mode == 10) {
-            deferred_completion(ResultUnknown.raw);
-            return;
-        }
+        
+[this, request, title_id,
+ deferred_completion = std::move(completion)] {
+        
+if (dialog || !parent || request.mode == 10) {
+    deferred_completion(ResultUnknown.raw);
+    return;
+}
+
         auto* window = new QDialog(parent);
         dialog = window;
         window->setAttribute(Qt::WA_DeleteOnClose);
@@ -110,10 +113,12 @@ void QtFriendInvitation::ShowInvitation(
         send->setEnabled(false);
         layout->addWidget(buttons);
         connect(buttons, &QDialogButtonBox::rejected, window, &QDialog::reject);
-        connect(window, &QDialog::finished, window,
+        
+connect(window, &QDialog::finished, window,
         [deferred_completion](int code) {
     deferred_completion(code == QDialog::Accepted ? 0 : ResultUnknown.raw);
 });
+
         const auto generation = Common::NextendoAccount::GetGeneration();
         auto* load = new QFutureWatcher<WebService::NextendoApi::FriendList>(window);
         connect(load, &QFutureWatcher<WebService::NextendoApi::FriendList>::finished, window,
