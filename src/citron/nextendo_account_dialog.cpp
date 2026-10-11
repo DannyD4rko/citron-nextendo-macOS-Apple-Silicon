@@ -2722,20 +2722,20 @@ QString LobbyStateLine(const WebService::NextendoApi::Lobby& lobby) {
 void NextendoAccountDialog::RefreshPlayers() {
 #ifdef ENABLE_WEB_SERVICE
     std::thread{[this, guard = QPointer<NextendoAccountDialog>(this)] {
-        auto lobby = WebService::NextendoApi::GetMyLobby();
-        auto recent = WebService::NextendoApi::GetRecentPlayers();
+        auto fetched_lobby = WebService::NextendoApi::GetMyLobby();
+        auto fetched_recent = WebService::NextendoApi::GetRecentPlayers();
 
-        std::unordered_map<u64, std::string> avatars;
+        std::unordered_map<u64, std::string> fetched_avatars;
         const auto fetch_avatar = [&](u64 pid) {
-            if (pid == 0 || avatars.contains(pid)) {
+            if (pid == 0 || fetched_avatars.contains(pid)) {
                 return;
             }
-            avatars[pid] = WebService::NextendoApi::GetAvatarByPid(pid);
+            fetched_avatars[pid] = WebService::NextendoApi::GetAvatarByPid(pid);
         };
-        for (const auto& player : lobby.players) {
+        for (const auto& player : fetched_lobby.players) {
             fetch_avatar(player.pid);
         }
-        for (const auto& player : recent) {
+        for (const auto& player : fetched_recent) {
             fetch_avatar(player.pid);
         }
 
@@ -2744,8 +2744,8 @@ void NextendoAccountDialog::RefreshPlayers() {
         }
         QMetaObject::invokeMethod(
             guard.data(),
-            [this, guard, lobby = std::move(lobby), recent = std::move(recent),
-             avatars = std::move(avatars)]() mutable {
+            [this, guard, lobby = std::move(fetched_lobby), recent = std::move(fetched_recent),
+             avatars = std::move(fetched_avatars)]() mutable {
                 if (!guard) {
                     return;
                 }
