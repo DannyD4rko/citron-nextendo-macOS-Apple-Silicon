@@ -14,7 +14,7 @@
 
 #include <SDL.h>
 #ifdef __APPLE__
-#include <SDL_metal.h>
+#include <SDL3/SDL_metal.h>
 #endif
 
 EmuWindow_SDL2_VK::EmuWindow_SDL2_VK(InputCommon::InputSubsystem* input_subsystem_,
