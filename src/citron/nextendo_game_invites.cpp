@@ -143,9 +143,8 @@ QString NextendoGameInvites::Accept(const QString& id) {
 
 void NextendoGameInvites::Decline(const QString& id) {
     (void)QtConcurrent::run([invite_id = id.toStdString()] {
-        return WebService::NextendoApi::DismissGameInvitation(id);
+        return WebService::NextendoApi::DismissGameInvitation(invite_id);
     });
-    Remove(id);
 }
 
 bool NextendoGameInvites::PruneExpired() {
