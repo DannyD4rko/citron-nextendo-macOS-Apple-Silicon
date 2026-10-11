@@ -67,12 +67,16 @@ void QtFriendInvitation::Close() const {
     }, Qt::QueuedConnection);
 }
 
-void QtFriendInvitation::ShowInvitation(const Core::Frontend::FriendInvitationRequest& request,
-                                       u64 title_id, Completion completion) const {
-    QMetaObject::invokeMethod(const_cast<QtFriendInvitation*>(this),
-        [this, request, title_id, completion = std::move(completion)] {
+void QtFriendInvitation::ShowInvitation(
+    const Core::Frontend::FriendInvitationRequest& request,
+    u64 title_id, Completion completion) const {
+
+    QMetaObject::invokeMethod(
+        const_cast<QtFriendInvitation*>(this),
+        [this, request, title_id,
+         deferred_completion = std::move(completion)] {
         if (dialog || !parent || request.mode == 10) {
-            completion(ResultUnknown.raw);
+            deferred_completion(ResultUnknown.raw);
             return;
         }
         auto* window = new QDialog(parent);
@@ -106,9 +110,10 @@ void QtFriendInvitation::ShowInvitation(const Core::Frontend::FriendInvitationRe
         send->setEnabled(false);
         layout->addWidget(buttons);
         connect(buttons, &QDialogButtonBox::rejected, window, &QDialog::reject);
-        connect(window, &QDialog::finished, window, [completion](int code) {
-            completion(code == QDialog::Accepted ? 0 : ResultUnknown.raw);
-        });
+        connect(window, &QDialog::finished, window,
+        [deferred_completion](int code) {
+    deferred_completion(code == QDialog::Accepted ? 0 : ResultUnknown.raw);
+});
         const auto generation = Common::NextendoAccount::GetGeneration();
         auto* load = new QFutureWatcher<WebService::NextendoApi::FriendList>(window);
         connect(load, &QFutureWatcher<WebService::NextendoApi::FriendList>::finished, window,
