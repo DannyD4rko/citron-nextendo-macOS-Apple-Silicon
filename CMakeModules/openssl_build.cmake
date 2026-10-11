@@ -106,6 +106,10 @@ elseif (CMAKE_CROSSCOMPILING AND CMAKE_C_COMPILER MATCHES "x86_64-w64-mingw32")
     set(_OPENSSL_AR     "llvm-ar")
     set(_OPENSSL_RANLIB "llvm-ranlib")
     set(_OPENSSL_RC     "windres")
+elseif (APPLE AND CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    # Apple Silicon host targeting Intel macOS: don't let Configure infer the
+    # host architecture and produce arm64 objects.
+    set(_OPENSSL_TARGET "darwin64-x86_64-cc")
 elseif (WIN32)
     # Case 1: MSYS2 native Windows build.  CMake's WIN32 is target-based, so
     # this must come after the Linux-to-Windows cross-compile case above.
@@ -297,6 +301,7 @@ file(MAKE_DIRECTORY "${_OPENSSL_BUILD_DIR}")
 # generates x86_64 NASM object files using the *host* nasm binary — not a
 # prefixed cross-tool — so the same nasm package used for FFmpeg works here too.
 if (_OPENSSL_TARGET STREQUAL "mingw64" OR
+    _OPENSSL_TARGET STREQUAL "darwin64-x86_64-cc" OR
     (NOT _OPENSSL_TARGET AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64"))
     find_program(_OPENSSL_NASM nasm)
     if (NOT _OPENSSL_NASM)
@@ -326,6 +331,9 @@ set(_OPENSSL_CONFIGURE_ARGS
     no-capieng
     no-winstore
 )
+if (APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
+    list(APPEND _OPENSSL_CONFIGURE_ARGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
 if (_OPENSSL_CROSS)
     list(APPEND _OPENSSL_CONFIGURE_ARGS "--cross-compile-prefix=${_OPENSSL_CROSS}")
 endif()

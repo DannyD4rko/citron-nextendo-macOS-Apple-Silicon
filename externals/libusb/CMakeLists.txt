@@ -65,6 +65,13 @@ if (MINGW OR (${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR APPLE)
         set(LIBUSB_LIBRARIES "${LIBUSB_PREFIX}/libusb/.libs/libusb-1.0.a" CACHE PATH "libusb library path" FORCE)
     endif()
 
+    if (APPLE AND CMAKE_OSX_ARCHITECTURES)
+        string(REPLACE ";" " " LIBUSB_CFLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
+        if (CMAKE_OSX_DEPLOYMENT_TARGET)
+            string(APPEND LIBUSB_CFLAGS " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+        endif()
+    endif()
+
     set(LIBUSB_INCLUDE_DIRS "${LIBUSB_SRC_DIR}/libusb" CACHE PATH "libusb headers path" FORCE)
 
     make_directory("${LIBUSB_PREFIX}")
@@ -85,7 +92,7 @@ if (MINGW OR (${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR APPLE)
             env
                 CC="${CMAKE_C_COMPILER}"
                 CXX="${CMAKE_CXX_COMPILER}"
-                CFLAGS="${LIBUSB_CFLAGS}"
+                CFLAGS=${LIBUSB_CFLAGS}
             sh "${LIBUSB_CONFIGURE}"
                 ${LIBUSB_CONFIGURE_ARGS}
                 --srcdir="${LIBUSB_SRC_DIR}"

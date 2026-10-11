@@ -29,6 +29,13 @@ if (NOT COMMAND CPMAddPackage)
     message(FATAL_ERROR "CPM.cmake not loaded — include CMakeModules/CPM.cmake before this file")
 endif()
 
+# Boost detects the build host rather than the selected macOS target when
+# CMAKE_OSX_ARCHITECTURES is set (for example, arm64 host building x86_64).
+if (APPLE AND CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    set(BOOST_CONTEXT_ARCHITECTURE x86_64 CACHE STRING "" FORCE)
+    set(BOOST_CONTEXT_ABI sysv CACHE STRING "" FORCE)
+endif()
+
 # ── tzdb host capability check ────────────────────────────────────────────────
 # tzdb_to_nx builds 'zic' from C source using the host compiler.
 # On WIN32 hosts, Windows headers lack POSIX APIs (link, symlink, readlink,
@@ -520,6 +527,9 @@ if ((ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64) AND NOT (MSVC AND ARCHITECTURE_a
                 RESULT_VARIABLE _dynarmic_sha1_patch
                 OUTPUT_QUIET ERROR_QUIET
             )
+        endif()
+        if (APPLE AND CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64" AND TARGET dynarmic)
+            target_compile_definitions(dynarmic PRIVATE ARCHITECTURE_X86_64=1)
         endif()
         if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND dynarmic_ADDED)
             execute_process(

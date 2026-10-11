@@ -42,7 +42,8 @@ Verified working: All officially supported titles.
 
 ## Setup
 
-1. Build as you would upstream Citron (see `docs/`), or use a release build.
+1. Build as you would upstream Citron (see `docs/`), or use a release build. For Intel Macs,
+   see [Building Citron for macOS](docs/BUILDING-CITRON-MACOS.md).
 2. Open the **NexTendo** menu and click **Enable Network Redirection**. It's off by default; the
    server addresses are already filled in, so there's nothing to type.
 3. Still in the **NexTendo** menu, click **Sign In** and complete sign-in in your browser.

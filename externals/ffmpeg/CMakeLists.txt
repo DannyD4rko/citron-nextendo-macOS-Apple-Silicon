@@ -54,6 +54,10 @@ if (NOT WIN32 AND NOT ANDROID)
             ${FFmpeg_${COMPONENT}_LIBRARY}
             CACHE PATH "Paths to FFmpeg libraries" FORCE)
     endforeach()
+    if (APPLE)
+        find_package(Iconv REQUIRED)
+        list(APPEND FFmpeg_LIBRARIES "${Iconv_LIBRARY}")
+    endif()
 
     find_package(PkgConfig REQUIRED)
     if (NOT ANDROID)
@@ -138,6 +142,17 @@ if (NOT WIN32 AND NOT ANDROID)
     find_program(BASH_PROGRAM bash REQUIRED)
 
     set(FFmpeg_CROSS_COMPILE_FLAGS "")
+    if (APPLE AND CMAKE_OSX_ARCHITECTURES)
+        string(REPLACE ";" " " FFmpeg_ARCH_FLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
+        if (CMAKE_OSX_DEPLOYMENT_TARGET)
+            string(APPEND FFmpeg_ARCH_FLAGS " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+        endif()
+        list(APPEND FFmpeg_CROSS_COMPILE_FLAGS
+            --arch=${CMAKE_OSX_ARCHITECTURES}
+            --extra-cflags=${FFmpeg_ARCH_FLAGS}
+            --extra-ldflags=${FFmpeg_ARCH_FLAGS}
+        )
+    endif()
     if (ANDROID)
         string(TOLOWER "${CMAKE_HOST_SYSTEM_NAME}" FFmpeg_HOST_SYSTEM_NAME)
         set(TOOLCHAIN "${ANDROID_NDK}/toolchains/llvm/prebuilt/${FFmpeg_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")

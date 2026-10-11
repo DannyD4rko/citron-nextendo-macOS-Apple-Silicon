@@ -52,11 +52,19 @@ jobs:
           fi
 
   build:
-    name: "Citron Build (macOS)"
+    name: "Citron Build (macOS ${{ matrix.arch }})"
     needs: [check-version]
     if: needs.check-version.outputs.should_build == 'true'
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
 
     steps:
       - uses: actions/checkout@v4
@@ -99,7 +107,8 @@ jobs:
           OPENAL_DIR="$(brew --prefix openal-soft)"
 
           cmake -B build -S . -G "Ninja" \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_PREFIX_PATH="$OPENAL_DIR" \
@@ -128,6 +137,18 @@ jobs:
             exit 1
           fi
           echo "Found .app bundle at: $APP_BUNDLE_PATH"
+
+          APP_EXECUTABLE="$APP_BUNDLE_PATH/Contents/MacOS/citron"
+          if [ ! -f "$APP_EXECUTABLE" ]; then
+            echo "::error::Could not find the Citron executable in the app bundle"
+            exit 1
+          fi
+          APP_ARCHS=$(lipo -archs "$APP_EXECUTABLE")
+          echo "Citron executable architectures: $APP_ARCHS"
+          if ! echo "$APP_ARCHS" | tr ' ' '\n' | grep -qx "${{ matrix.arch }}"; then
+            echo "::error::Expected a ${{ matrix.arch }} Citron executable, got: $APP_ARCHS"
+            exit 1
+          fi
 
           QT_MACOS_ROOT=$(find build/externals/qt -maxdepth 3 -type d -path "*/macos" | sort -V | tail -n 1)
           if [ -z "$QT_MACOS_ROOT" ]; then
@@ -262,14 +283,14 @@ jobs:
 
           # Step 8: Create the final DMG
           echo "Creating final DMG..."
-          DMG_FILENAME="Citron-macOS-nightly-${{ steps.version.outputs.VERSION }}.dmg"
-          hdiutil create -fs HFS+ -srcfolder "$APP_BUNDLE_PATH" -volname "Citron Nightly" "./$DMG_FILENAME"
+          DMG_FILENAME="Citron-macOS-${{ matrix.arch }}-nightly-${{ steps.version.outputs.VERSION }}.dmg"
+          hdiutil create -fs HFS+ -srcfolder "$APP_BUNDLE_PATH" -volname "Citron Nightly (${{ matrix.arch }})" "./$DMG_FILENAME"
           mv "$DMG_FILENAME" ./dist/
 
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
         with:
-          name: Citron-macOS-Nightly
+          name: Citron-macOS-Nightly-${{ matrix.arch }}
           path: "dist/*.dmg"
 
   release:
@@ -284,14 +305,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Citron-macOS-Nightly
+          pattern: Citron-macOS-Nightly-*
+          merge-multiple: true
           path: .
       - name: Get Version from Filename
         run: |
-          FILENAME=$(ls *.dmg)
-          VERSION=${FILENAME#Citron-macOS-nightly-}
-          VERSION=${VERSION%.dmg}
-          echo "APP_VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "APP_VERSION=${{ needs.check-version.outputs.new_hash }}" >> $GITHUB_ENV
       - name: Delete Previous Release
         run: gh release delete "nightly-macos" --repo "${{ github.repository }}" --cleanup-tag -y || true
         env:
@@ -308,7 +327,7 @@ jobs:
           body: |
             **Citron Commit:** [`${{ needs.check-version.outputs.new_hash }}`](https://github.com/${{ github.repository }}/commit/${{ needs.check-version.outputs.new_hash_full }})
             **Build Details:**
-            - Platform: macOS (Universal)
+            - Platform: macOS (arm64 and x86_64)
             - Build Type: Release with Qt6 and LTO
             - Date: ${{ env.BUILD_DATE }}
       - name: Update LATEST_VERSION_MACOS
