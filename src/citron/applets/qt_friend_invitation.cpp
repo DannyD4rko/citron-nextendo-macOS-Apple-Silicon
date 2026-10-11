@@ -74,9 +74,9 @@ void QtFriendInvitation::ShowInvitation(
     QMetaObject::invokeMethod(
         const_cast<QtFriendInvitation*>(this),
         [this, request, title_id,
-         deferred_completion = std::move(completion)] {
+         deferred_completion = std::move(deferred_completion)] {
         if (dialog || !parent || request.mode == 10) {
-            completion(ResultUnknown.raw);
+            deferred_completion(ResultUnknown.raw);
             return;
         }
         auto* window = new QDialog(parent);
